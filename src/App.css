@@ -124,3 +124,33 @@ pre {
     white-space: pre-wrap;
     word-break: break-all;
 }
+/* src/App.css */
+
+/* ... (CSS cũ giữ nguyên) ... */
+
+.explanation-box {
+    background-color: #e9f5ff;
+    border: 1px solid #b3d7ff;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 25px;
+    font-size: 0.9em;
+}
+
+.explanation-box h3 {
+    margin-top: 0;
+    color: #0056b3;
+}
+
+.slider-group small {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.8em;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.result-box p {
+    font-size: 0.95em;
+    line-height: 1.5;
+}
