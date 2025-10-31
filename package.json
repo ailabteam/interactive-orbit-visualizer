@@ -1,4 +1,3 @@
-(poc_visualizer) daipv11@Ubuntu22:~/hao/git_working/interactive-orbit-visualizer$ cat package.json
 {
   "name": "interactive-orbit-visualizer-frontend",
   "private": true,
