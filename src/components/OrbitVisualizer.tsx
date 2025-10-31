@@ -1,79 +1,104 @@
 // src/components/OrbitVisualizer.tsx
 
+// Import các thành phần cần thiết
 import Plot from 'react-plotly.js';
+import { Data, Layout } from 'plotly.js';
 
-// Định nghĩa kiểu dữ liệu cho props mà component này sẽ nhận
+// --- Định nghĩa các Kiểu dữ liệu (Interfaces) ---
+
+// Kiểu cho một điểm vị trí 3D
 interface Position {
   x: number;
   y: number;
   z: number;
 }
 
+// Kiểu cho các props mà component này sẽ nhận từ component cha (App.tsx)
 interface OrbitVisualizerProps {
   positions: Position[];
 }
 
-// Component OrbitVisualizer
+
+// --- Component Chính ---
+
 const OrbitVisualizer = ({ positions }: OrbitVisualizerProps) => {
-  // 1. Chuẩn bị dữ liệu cho Plotly
-  // Tách mảng các object thành 3 mảng riêng biệt cho x, y, z
+
+  // === BƯỚC 1: CHUẨN BỊ DỮ LIỆU CHO PLOTLY ===
+
+  // Tách mảng các object vị trí thành 3 mảng riêng biệt cho mỗi trục
+  // Plotly cần dữ liệu theo từng trục để vẽ
   const xCoords = positions.map(p => p.x);
   const yCoords = positions.map(p => p.y);
   const zCoords = positions.map(p => p.z);
+
+  // Tạo một điểm dữ liệu duy nhất ở tâm (0,0,0) để tượng trưng cho Trái Đất
+  const earthTrace: Data = {
+    x: [0],
+    y: [0],
+    z: [0],
+    mode: 'markers',
+    type: 'scatter3d',
+    name: 'Earth (Center)',
+    marker: {
+      color: '#2ca02c', // Màu xanh lá cây
+      size: 8,
+      symbol: 'circle'
+    }
+  };
+
+  // Tạo dữ liệu cho đường quỹ đạo
+  const orbitTrace: Data = {
+    x: xCoords,
+    y: yCoords,
+    z: zCoords,
+    mode: 'lines',
+    type: 'scatter3d',
+    name: 'Satellite Orbit',
+    line: {
+      color: '#1f77b4', // Màu xanh dương
+      width: 4
+    }
+  };
+
+
+  // === BƯỚC 2: CẤU HÌNH GIAO DIỆN ĐỒ THỊ (LAYOUT) ===
   
-  // Thêm một điểm ở tâm (0,0,0) để tượng trưng cho Trái Đất
-  const earth_x = [0];
-  const earth_y = [0];
-  const earth_z = [0];
-
-
-  // 2. Cấu hình đồ thị (layout)
-  const layout = {
-    title: 'Satellite Orbit (3D Visualization)',
+  // Khai báo biến layout tuân thủ đúng kiểu Partial<Layout> của Plotly
+  const layout: Partial<Layout> = {
+    // Sửa lỗi: Tiêu đề phải là một object có thuộc tính 'text'
+    title: {
+      text: 'Satellite Orbit (3D Visualization)'
+    },
     autosize: true,
+    // Cấu hình cho cảnh 3D
     scene: {
       xaxis: { title: 'X (km)' },
       yaxis: { title: 'Y (km)' },
       zaxis: { title: 'Z (km)' },
-      aspectratio: { x: 1, y: 1, z: 1 } // Đảm bảo các trục có cùng tỷ lệ
+      // Đảm bảo các trục có cùng tỷ lệ để quỹ đạo không bị méo
+      aspectratio: { x: 1, y: 1, z: 1 },
+      camera: {
+        eye: {x: 1.5, y: 1.5, z: 1.5} // Đặt góc nhìn ban đầu
+      }
     },
-    margin: { l: 0, r: 0, b: 0, t: 40 } // Giảm lề để đồ thị lớn hơn
+    // Giảm lề để đồ thị chiếm nhiều không gian hơn
+    margin: { l: 0, r: 0, b: 0, t: 40 },
+    // Tắt chú thích (legend) nếu muốn để giao diện sạch hơn
+    showlegend: true 
   };
 
-  // 3. Trả về component Plot của react-plotly.js
+
+  // === BƯỚC 3: RENDER COMPONENT PLOT ===
+
   return (
     <Plot
-      data={[
-        // Dữ liệu cho quỹ đạo vệ tinh
-        {
-          x: xCoords,
-          y: yCoords,
-          z: zCoords,
-          mode: 'lines',
-          type: 'scatter3d',
-          name: 'Satellite Orbit',
-          line: {
-            color: '#1f77b4', // Màu xanh
-            width: 4
-          }
-        },
-        // Dữ liệu cho "Trái Đất"
-        {
-            x: earth_x,
-            y: earth_y,
-            z: earth_z,
-            mode: 'markers',
-            type: 'scatter3d',
-            name: 'Earth (Center)',
-            marker: {
-                color: '#2ca02c', // Màu xanh lá
-                size: 8
-            }
-        }
-      ]}
+      // Truyền vào một mảng chứa tất cả các "dấu vết" (traces) cần vẽ
+      data={[orbitTrace, earthTrace]}
       layout={layout}
-      style={{ width: '100%', height: '600px' }} // Đặt kích thước cho đồ thị
-      config={{ responsive: true }} // Đảm bảo đồ thị co giãn theo cửa sổ
+      // Đặt kích thước cho khung chứa đồ thị
+      style={{ width: '100%', height: '600px' }}
+      // Cấu hình bổ sung, ví dụ: làm cho đồ thị co giãn theo kích thước cửa sổ
+      config={{ responsive: true }}
     />
   );
 };
