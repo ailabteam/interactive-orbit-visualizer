@@ -25,9 +25,7 @@ This PoC is the cornerstone for future, more advanced simulations, including con
 
 A detailed walkthrough and demonstration of this PoC is available on YouTube. Click the thumbnail below to watch the video.
 
-[![YouTube Demo Video Thumbnail](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
-
-> **Note:** Please replace `YOUTUBE_VIDEO_ID_HERE` with the actual ID of your YouTube video. For a URL like `https://www.youtube.com/watch?v=dQw4w9WgXcQ`, the ID is `dQw4w9WgXcQ`.
+[![YouTube Demo Video Thumbnail](https://img.youtube.com/vi/jJ-bybOiENY/0.jpg)](https://www.youtube.com/watch?v=jJ-bybOiENY)
 
 ---
 
