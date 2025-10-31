@@ -75,7 +75,6 @@ function App() {
       
       <main>
         <div className="controls-panel">
-          {/* --- KHỐI GIẢI THÍCH 1: GIỚI THIỆU --- */}
           <div className="explanation-box">
             <h3>About This PoC</h3>
             <p>
@@ -94,7 +93,8 @@ function App() {
           <div className="slider-group">
             <label htmlFor="eccentricity">Eccentricity: {params.eccentricity}</label>
             <input id="eccentricity" type="range" name="eccentricity" min="0" max="0.9" step="0.01" value={params.eccentricity} onChange={handleParamChange} />
-            <small>Defines the shape of the orbit. 0 for a perfect circle, >0 for an ellipse.</small>
+            {/* === SỬA LỖI NẰM Ở ĐÂY === */}
+            <small>Defines the shape of the orbit. 0 for a perfect circle, &gt;0 for an ellipse.</small>
           </div>
           
           <div className="slider-group">
@@ -102,8 +102,6 @@ function App() {
             <input id="inclination" type="range" name="inclination" min="0" max="180" step="1" value={params.inclination} onChange={handleParamChange} />
             <small>Defines the tilt of the orbit relative to the Earth's equator. 0° for equatorial, 90° for polar.</small>
           </div>
-
-          {/* (Các tham số khác có thể thêm vào sau nếu muốn) */}
           
           <button onClick={handleCalculateClick} disabled={status === 'Calculating...'}>
             {status === 'Calculating...' ? '🛰️ Calculating...' : '🚀 Calculate & Visualize'}
@@ -121,7 +119,6 @@ function App() {
 
           {result ? (
             <div className="result-box">
-              {/* --- KHỐI GIẢI THÍCH 2: KẾT QUẢ --- */}
               <p>
                 The backend calculated that a satellite with these parameters would have an <strong>Orbit Period</strong> of <strong>{(result.period_seconds / 60).toFixed(2)} minutes</strong>. The 3D plot below shows the trajectory for one full orbit, sampled at <strong>{result.positions.length} points</strong>.
               </p>
