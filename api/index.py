@@ -1,72 +1,76 @@
-from fastapi import FastAPI
+# api/index.py
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+import httpx
+import os
 
-# Import các thư viện cần thiết từ poliastro và astropy
-from astropy import units as u
-from poliastro.bodies import Earth
-from poliastro.twobody import Orbit
-import numpy as np
-
-# --- Định nghĩa cấu trúc dữ liệu đầu vào ---
-# Sử dụng Pydantic để validate dữ liệu từ frontend
-class OrbitParams(BaseModel):
-    semi_major_axis: float  # in km
-    eccentricity: float
-    inclination: float      # in degrees
-    raan: float             # in degrees
-    argp: float             # in degrees
-    true_anomaly: float     # in degrees
+# --- CẤU HÌNH QUAN TRỌNG ---
+# Lấy địa chỉ server tính toán từ biến môi trường của Vercel,
+# nếu không có thì dùng giá trị IP công khai của bạn làm mặc định.
+# Cổng là 8888 như chúng ta đã thống nhất.
+COMPUTE_SERVER_URL = os.getenv("COMPUTE_SERVER_URL", "http://14.232.208.84:8888")
 
 # --- Khởi tạo ứng dụng FastAPI ---
-app = FastAPI()
+app = FastAPI(title="Vercel Proxy Gateway for Orbit Visualizer")
 
 # --- Định nghĩa các API Endpoints ---
 @app.get("/api/hello")
 def get_hello():
-    content = {"message": "Success! This message is from the Python backend router."}
-    return JSONResponse(content=content)
+    """Endpoint để kiểm tra xem Proxy có hoạt động không."""
+    return JSONResponse(content={"message": f"Vercel Proxy is running and configured to connect to: {COMPUTE_SERVER_URL}"})
 
 @app.post("/api/calculate-orbit")
-def calculate_orbit_endpoint(params: OrbitParams):
+async def proxy_calculate_orbit(request: Request):
     """
-    Nhận các tham số quỹ đạo, tính toán và trả về chuỗi vị trí.
+    Endpoint này hoạt động như một proxy:
+    1. Nhận request từ frontend.
+    2. Chuyển tiếp nó đến server tính toán nặng.
+    3. Nhận kết quả từ server tính toán.
+    4. Trả kết quả về cho frontend.
     """
     try:
-        # 1. Tạo đối tượng quỹ đạo từ các tham số đầu vào
-        orbit = Orbit.from_classical(
-            Earth,
-            params.semi_major_axis * u.km,
-            params.eccentricity * u.one,
-            params.inclination * u.deg,
-            params.raan * u.deg,
-            params.argp * u.deg,
-            params.true_anomaly * u.deg
-        )
+        # Lấy dữ liệu JSON từ request gốc mà frontend gửi lên
+        payload = await request.json()
 
-        # 2. Lấy chu kỳ quỹ đạo
-        period_seconds = orbit.period.to(u.s).value
-
-        # 3. Tạo một chuỗi các điểm thời gian để lấy mẫu vị trí
-        # Lấy 200 điểm trong một chu kỳ
-        times = np.linspace(0, orbit.period, 200)
-
-        # 4. Lấy tọa độ tại các điểm thời gian đó
-        coords = orbit.propagate_many(times).represent_as('cartesian')
+        # Dùng httpx để gọi đến server tính toán với timeout 60 giây
+        # Đây là khoảng thời gian tối đa mà Vercel chờ đợi phản hồi
+        async with httpx.AsyncClient() as client:
+            print(f"Forwarding request to: {COMPUTE_SERVER_URL}/calculate-orbit")
+            response = await client.post(
+                f"{COMPUTE_SERVER_URL}/calculate-orbit", 
+                json=payload, 
+                timeout=60.0
+            )
         
-        # 5. Chuyển đổi tọa độ thành một danh sách các dictionary để gửi đi
-        positions = [
-            {"x": x, "y": y, "z": z}
-            for x, y, z in zip(coords.x.to(u.km).value, coords.y.to(u.km).value, coords.z.to(u.km).value)
-        ]
+        # Nếu server tính toán trả về lỗi (ví dụ: 400, 500), 
+        # lệnh này sẽ raise một exception để khối catch bên dưới xử lý.
+        response.raise_for_status()
+        
+        # Trả về dữ liệu thành công cho frontend
+        print("Request to compute server successful. Returning response to client.")
+        return JSONResponse(content=response.json())
 
-        # 6. Tạo object kết quả và trả về
-        result = {
-            "period": period_seconds,
-            "positions": positions
-        }
-        return JSONResponse(content=result)
-
-    except Exception as e:
-        # Bắt lỗi và trả về một thông báo lỗi rõ ràng
-        return JSONResponse(status_code=400, content={"error": str(e)})
+    except httpx.HTTPStatusError as exc:
+        # Bắt lỗi HTTP từ server tính toán và chuyển tiếp nó một cách chi tiết
+        error_detail = f"Error from compute server ({exc.response.status_code}): {exc.response.text}"
+        print(f"!!! {error_detail}")
+        raise HTTPException(
+            status_code=exc.response.status_code, 
+            detail=error_detail
+        )
+    except httpx.RequestError as exc:
+        # Bắt các lỗi liên quan đến kết nối mạng (ví dụ: không kết nối được server)
+        error_detail = f"Could not connect to compute server: {exc}"
+        print(f"!!! {error_detail}")
+        raise HTTPException(
+            status_code=503, # 503 Service Unavailable
+            detail=error_detail
+        )
+    except Exception as exc:
+        # Bắt các lỗi chung khác xảy ra trong proxy
+        error_detail = f"An internal proxy error occurred: {str(exc)}"
+        print(f"!!! {error_detail}")
+        raise HTTPException(
+            status_code=500, 
+            detail=error_detail
+        )
